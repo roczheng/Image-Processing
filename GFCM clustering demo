@@ -1,0 +1,85 @@
+mu = [2 8];
+SIGMA = [0.3 0; 0 0.3];
+r1 = mvnrnd(mu,SIGMA,50);
+plot(r1(:,1),r1(:,2),'r+');
+hold on;
+mu = [2 4];
+SIGMA = [ 0.3 0; 0 0.3];
+r2 = mvnrnd(mu,SIGMA,50);
+plot(r2(:,1),r2(:,2),'g*');
+mu = [5 6];
+SIGMA = [ 0.3 0; 0 0.3];
+r3 = mvnrnd(mu,SIGMA,50);
+plot(r3(:,1),r3(:,2),'bs');
+mu = [8 4];
+SIGMA = [ 0.3 0; 0 0.3];
+r4 = mvnrnd(mu,SIGMA,50);
+plot(r4(:,1),r4(:,2),'k^');
+mu = [8 8];
+SIGMA = [ 0.3 0; 0 0.3];
+r5 = mvnrnd(mu,SIGMA,50);
+plot(r5(:,1),r5(:,2),'mo');
+hold on; %defination the data set and plot
+data=[r1;r2;r3;r4;r5];
+Cluster=10;
+center_1=sum(data)./size(data,1);
+dist=distfcm(center_1, data);
+E1= sum(dist(:));
+expo=2;
+p=2;
+max_iter=100;
+min_impro=1e-5;
+temp=[];
+center2=[]; %save the center of cluster
+U_t=[]; %save the U_relationship of the data and the center
+display=1;
+maxIk=0;
+for cluster_n=2:Cluster %iteration to search the C cluster center
+    for j=1:size(data,1)
+       center=[center_1;data(j,:)]; %initial the set of center
+       dist = distfcm(center, data); % fill the distance matrix
+       tmp = dist.^(-2/(expo-1)); % calculate new U, suppose expo != 1
+       U= tmp./(ones(cluster_n, 1)*sum(tmp));
+       U(isnan(U)) = 1;
+       for i=1:max_iter
+          [U, center, obj_fcn(i)] = stepfcm(data, U, cluster_n, expo);
+          dist = distfcm(center, data);
+          Ek=sum(sum(U.*dist));
+          Dk=max(max(distfcm(center, center)));
+          Ik(i)=(1/cluster_n*E1/Ek*Dk)^p;
+          if display,
+                    fprintf('Iteration count = %d, Ik= %f\n', i, Ik(i));
+          end
+          if Ik(i)>maxIk
+              maxIk=Ik(i);
+                center_op=[];
+                U_op=[];
+                k_op=cluster_n;
+                center_op=[center_op;center];
+                U_op=[U_op;U];
+          end
+          if i > 1,
+              if abs(Ik(i)-Ik(i-1)) < min_impro;
+                 break;
+              end
+          end
+       end
+       center2=[center2;center];
+       temp=[temp;obj_fcn(i)];
+       obj_fcn=[];
+    end
+    N=max(temp);
+    [count,c]=find(N==temp);
+    center_1=[];
+   
+   for k=1:cluster_n
+      center_1=[center_1;center2((cluster_n*count-k),:)];
+   end
+end
+maxU = max(U_op);
+for iter=1:k_op
+    index=find(U_op(iter,:)==maxU);
+    line(data(index,1),data(index,2),'marker','*','color','r'); %line the data in the same cluster
+end
+plot(center_op(:,1),center_op(:,2),'k*'); %plot the center of cluster
+hold off;
