@@ -1,0 +1,83 @@
+C=input('请用户输入聚类数：');
+data=rand(100,2);
+center1=sum(data)./size(data,1);
+expo=2;
+max_iter=100;
+min_impro=1e-5;
+temp=[];
+center2=[]; %save the center of cluster
+U_t=[]; %save the U_relationship of the data and the center
+display=0;
+for cluster_n=2:C %iteration to search the C cluster center
+    temp=[];
+    U_t=[];
+    center2=[];
+    for j=1:size(data,1)
+       center=[center1;data(j,:)];
+       dist = distfcm(center, data); % fill the distance matrix
+       tmp = dist.^(-2/(expo-1)); % calculate new U, suppose expo != 1
+       U= tmp./(ones(cluster_n, 1)*sum(tmp));
+       U(isnan(U)) = 1;
+       for i=1:max_iter
+          [U, center, obj_fcn(i)] = stepfcm(data, U, cluster_n, expo);
+          if display,
+      fprintf('Iteration count = %d, obj. fcn = %f\n', i, obj_fcn(i));
+          end
+       if i > 1,
+          if abs(obj_fcn(i) - obj_fcn(i-1)) < min_impro;
+               break;
+       end,
+          end
+       iter_n = i;	% Actual number of iterations
+       end
+   center2=[center2;center];
+   U_t=[U_t;U];
+   temp=[temp;obj_fcn(i)];
+   obj_fcn=[];
+    end
+   N=max(temp);
+   [count,c]=find(N==temp);
+   center1=[];
+   
+   for k=1:cluster_n
+      center1=[center1;center2((cluster_n*count-k),:)];
+   end
+end
+plot(data(:,1), data(:,2),'o');
+hold on;
+Max_fcn=max(temp);
+fprintf('obj_gfcm = %f\n',Max_fcn);
+[count1,r]=find(temp==Max_fcn);
+plot(data(:,1), data(:,2),'o');
+hold on;
+maxU = max(U_t((cluster_n*count1-cluster_n+1):(cluster_n*count1),:));
+% Find the data points with highest grade of membership in cluster 1
+%index1 = find(U_t((cluster_n*count-1),:) == maxU);
+% Find the data points with highest grade of membership in cluster 2
+%index2 = find(U_t((cluster_n*count-2),:) == maxU);
+%index3 = find(U_t((cluster_n*count-3),:) == maxU);
+%index4 = find(U_t((cluster_n*count-4),:) == maxU);
+%index5 = find(U_t((cluster_n*count),:) == maxU);
+for iter=0:cluster_n-1
+    index=find(U_t((cluster_n*count1-iter),:) == maxU);
+    line(data(index,1),data(index,2),'marker','*','color','r'); %line the data in the same cluster
+end
+%line(data(index1,1),data(index1,2),'marker','*','color','g');
+%line(data(index2,1),data(index2,2),'marker','*','color','r');
+%line(data(index3,1),data(index3,2),'marker','*','color','b');
+%line(data(index4,1),data(index4,2),'marker','*','color','c');
+%line(data(index5,1),data(index5,2),'marker','*','color','m');
+% Plot the cluster centers
+plot(center2((C*count1-C+1):(C*count1),1),center2((C*count1-C+1):(C*count1),2),'k*'); %plot the center of cluster
+hold off;
+figure(2),plot(data(:,1), data(:,2),'o');
+hold on;
+[center_fcm,U_fcm,obj_fcm] = fcm(data,C);
+fprintf('obj_fcm = %f\n',obj_fcm(i));
+maxU_fcm = max(U_fcm);
+for iter=1:C
+    index=find(U_fcm(iter,:) == maxU_fcm);
+    line(data(index,1),data(index,2),'marker','*','color','r'); %line the data in the same cluster
+end
+plot(center_fcm(1:C,1),center_fcm(1:C,2),'k*'); %plot the center of cluster
+hold off;
